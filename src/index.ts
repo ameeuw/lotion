@@ -13,14 +13,10 @@ import fs = require('fs-extra')
 import getPort = require('get-port')
 import level = require('level')
 
-import TxServer = require('./tx-server')
-
-
 interface ApplicationConfig extends BaseApplicationConfig {
   rpcPort?: number
   p2pPort?: number
   abciPort?: number
-  lotionPort?: number
   logTendermint?: boolean
   emptyBlocksInterval?: number,
   dataRate?: number,
@@ -33,7 +29,6 @@ interface PortMap {
   abci: number
   p2p: number
   rpc: number
-  lotion: number
 }
 
 interface AppInfo {
@@ -60,7 +55,6 @@ export class LotionApp implements Application {
   private lotionHome: string = join(homedir(), '.lotion', 'networks')
   private storeDb: object
   private diffDb: object
-  private txServer: any
   private txHTTPServer: any
 
   public use
@@ -88,7 +82,6 @@ export class LotionApp implements Application {
       abci: this.config.abciPort || (await getPort()),
       p2p: this.config.p2pPort || (await getPort()),
       rpc: this.config.rpcPort || 46657,
-      lotion: this.config.lotionPort || 3000
     }
   }
 
@@ -162,15 +155,6 @@ export class LotionApp implements Application {
 
     this.setGenesis()
     this.setGCI()
-
-    this.txServer = TxServer({
-      port: this.ports.lotion,
-      rpcPort: this.ports.rpc,
-      stateMachine: this.stateMachine
-    })
-    this.txHTTPServer = this.txServer.listen(this.ports.lotion, 'localhost', function() {
-      console.log("listening...")
-    })
 
     if (this.dataRate) {
       console.log(`Tx/Rx datarate limited to ${this.dataRate} bytes/second`)
