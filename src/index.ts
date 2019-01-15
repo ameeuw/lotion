@@ -121,9 +121,7 @@ export class LotionApp implements Application {
       homePath.update(resolve(this.config.keyPath))
     }
 
-    if (!this.config.genesisPath && !this.config.keyPath) {
-      homePath.update(randomBytes(16).toString('hex'))
-    }
+    homePath.update(randomBytes(16).toString('hex'))
 
     this.home = join(this.lotionHome, homePath.digest('hex'))
   }
