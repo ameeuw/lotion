@@ -17,7 +17,7 @@ interface TendermintConfig {
   genesisPath?: string
   keyPath?: string
   emptyBlocksInterval?: number,
-  dataRate?: number,
+  datarate?: number,
   peers?: Array<string>
 }
 
@@ -32,7 +32,7 @@ export default async function createTendermintProcess({
   genesisPath,
   keyPath,
   emptyBlocksInterval,
-  dataRate,
+  datarate,
   peers
 }: TendermintConfig): Promise<any> {
   /**
@@ -108,9 +108,9 @@ export default async function createTendermintProcess({
      tmToml.consensus.timeout_commit = emptyBlocksInterval*1000
    }
 
-   if (dataRate) {
-     tmToml.p2p.send_rate = dataRate
-     tmToml.p2p.recv_rate = dataRate
+   if (datarate) {
+     tmToml.p2p.send_rate = datarate
+     tmToml.p2p.recv_rate = datarate
    }
 
    tmToml.rpc.laddr = `tcp://0.0.0.0:${ports.rpc}`

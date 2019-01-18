@@ -19,7 +19,7 @@ interface ApplicationConfig extends BaseApplicationConfig {
   abciPort?: number
   logTendermint?: boolean
   emptyBlocksInterval?: number,
-  dataRate?: number,
+  datarate?: number,
   keyPath?: string
   genesisPath?: string
   peers?: Array<string>
@@ -50,7 +50,7 @@ export class LotionApp implements Application {
   private initialState: object
   private logTendermint: boolean
   private emptyBlocksInterval: number
-  private dataRate: number
+  private datarate: number
   private home: string
   private lotionHome: string = join(homedir(), '.lotion', 'networks')
   private storeDb: object
@@ -67,7 +67,7 @@ export class LotionApp implements Application {
     this.application = buildApplication(config)
     this.logTendermint = config.logTendermint
     this.emptyBlocksInterval = config.emptyBlocksInterval
-    this.dataRate = config.dataRate
+    this.datarate = config.datarate
     this.initialState = config.initialState
     this.keyPath = config.keyPath
     this.genesisPath = config.genesisPath
@@ -145,7 +145,7 @@ export class LotionApp implements Application {
       home: this.home,
       logTendermint: this.logTendermint,
       emptyBlocksInterval: this.emptyBlocksInterval,
-      dataRate: this.dataRate,
+      datarate: this.datarate,
       keyPath: this.keyPath,
       genesisPath: this.genesisPath,
       peers: this.peers
@@ -154,8 +154,8 @@ export class LotionApp implements Application {
     this.setGenesis()
     this.setGCI()
 
-    if (this.dataRate) {
-      console.log(`Tx/Rx datarate limited to ${this.dataRate} bytes/second`)
+    if (this.datarate) {
+      console.log(`Tx/Rx datarate limited to ${this.datarate} bytes/second`)
     }
 
     let appInfo = this.getAppInfo()
