@@ -8,6 +8,9 @@ let fs = require('fs-extra')
 let { join } = require('path')
 
 let createServer = require('abci')
+let { createHash } = require('crypto')
+let fs = require('fs-extra')
+let { join } = require('path')
 
 export interface ABCIServer {
   listen(port)
@@ -16,8 +19,7 @@ export interface ABCIServer {
 export default function createABCIServer(
   stateMachine,
   initialState,
-  lotionAppHome,
-  diffDb
+  lotionAppHome
 ): any {
   let stateFilePath = join(lotionAppHome, 'prev-state.json')
   let height = 0
@@ -73,6 +75,7 @@ export default function createABCIServer(
     beginBlock(request) {
       let block = request.header
       let time = request.header.time.seconds.toNumber()
+      stateMachine.transition({ type: 'begin-block', data: { time } })
 
       stateMachine.transition({ type: 'begin-block', data: { time, block, height } })
       return {}
@@ -89,12 +92,10 @@ export default function createABCIServer(
           power: { low: validators[pubKey], high: 0 }
         })
       }
-      height++
       return {
         validatorUpdates
       }
     },
-
     async commit() {
       let data = stateMachine.commit()
       let state = stateMachine.query()

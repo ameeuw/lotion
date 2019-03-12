@@ -4,7 +4,7 @@ import buildApplication, {
   Application
 } from 'lotion-state-machine'
 
-import { join, resolve } from 'path'
+import { join } from 'path'
 import { homedir } from 'os'
 import createABCIServer, { ABCIServer } from './abci-server'
 import createTendermintProcess from './tendermint'
@@ -26,6 +26,7 @@ interface ApplicationConfig extends BaseApplicationConfig {
   keyPath?: string
   genesisPath?: string
   peers?: Array<string>
+  discovery?: boolean
 }
 
 interface PortMap {
@@ -54,6 +55,7 @@ export class LotionApp implements Application {
   private initialState: object
   private logTendermint: boolean
   private emptyBlocksInterval: number
+  private discovery: boolean = true
   private home: string
   private lotionHome: string = join(homedir(), '.lotion', 'networks')
   private diffDb: object
@@ -74,6 +76,7 @@ export class LotionApp implements Application {
     this.keyPath = config.keyPath
     this.genesisPath = config.genesisPath
     this.peers = config.peers
+    this.discovery = config.discovery == null ? true : config.discovery
 
     this.setHome()
     Object.assign(this, this.application)
@@ -138,9 +141,11 @@ export class LotionApp implements Application {
     // start state machine
     this.stateMachine = this.application.compile()
 
-    this.diffDb = level(join(this.home, 'diff'))
-
-    this.abciServer = createABCIServer(this.stateMachine, this.initialState, this.home, this.diffDb)
+    this.abciServer = createABCIServer(
+      this.stateMachine,
+      this.initialState,
+      this.home
+    )
     this.abciServer.listen(this.ports.abci)
 
     // start tendermint process
@@ -157,6 +162,14 @@ export class LotionApp implements Application {
     this.setGenesis()
     this.setGCI()
 
+    // start discovery server
+    if (this.discovery) {
+      this.discoveryServer = createDiscoveryServer({
+        GCI: this.GCI,
+        genesis: this.genesis,
+        rpcPort: this.ports.rpc
+      })
+    }
     this.txServer = TxServer({
       port: this.ports.lotion,
       rpcPort: this.ports.rpc,

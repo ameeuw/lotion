@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://travis-ci.org/keppel/lotion">
-    <img src="https://img.shields.io/travis/keppel/lotion/master.svg"
+    <img src="https://img.shields.io/travis/nomic-io/lotion/master.svg"
          alt="Travis Build">
   </a>
   <a href="https://www.npmjs.com/package/lotion">
@@ -65,23 +65,7 @@ app.use(function(state, tx) {
   }
 })
 
-app.start().then(console.log)
-```
-
-run `node app.js`, note your app's id (GCI), then in a separate node process:
-
-```js
-let { connect } = require('lotion')
-let GCI = '<put app GCI here>'
-
-async function main() {
-  let { state, send } = await connect(GCI)
-  console.log(await state) // { count: 0 }
-  console.log(await send({ nonce: 0 })) // { ok: true }
-  console.log(await state) // { count: 1 }
-}
-
-main()
+app.start()
 ```
 
 ## Introduction
@@ -95,10 +79,6 @@ Every user who runs your Lotion app will interact with the same blockchain. Anyo
 A Lotion application is often a single function of signature `(state, tx)` which mutates your blockchain's `state` in response to a transaction `tx`. Both are just objects.
 
 This cosmic wizardry is made possible by a magic piece of software named [Tendermint](https://github.com/tendermint/tendermint) which exists specifically for synchronizing state machines across networks.
-
-<p align="center">
-  <a href="https://github.com/keppel/lotion"><img src="https://lotionjs.com/img/tm-blue.png" alt="Lotion" width="200" /></a>
-</p>
 
 ### Blockchains and Tendermint
 
@@ -118,11 +98,8 @@ The **transaction** protocol describes what makes transactions valid, and how th
 
 | name                                                 | description                              |
 | ---------------------------------------------------- | ---------------------------------------- |
-| [lotion-chat](https://github.com/keppel/lotion-chat) | chat and collaborative haikus on lotion  |
-| [lotion-coin](https://github.com/keppel/lotion-coin) | early cryptocurrency prototype           |
 | [coins](https://github.com/mappum/coins)             | fully-featured cryptocurrency middleware |
 | [htlc](https://github.com/mappum/htlc)               | hashed timelock contracts on coins       |
-| [testnet](https://github.com/keppel/testnet)         | single-command testnet deployment        |
 | [shea](https://github.com/keppel/shea)               | on-chain client code management          |
 | [merk](https://github.com/mappum/merk)               | merkle AVL trees in javascript           |
 
@@ -151,14 +128,13 @@ Here are the available options for `opts` which you can override:
 
 ```js
 {
-  devMode: false,       // set this true to wipe blockchain data between runs
-  initialState: {},     // initial blockchain state
-  keyPath: './keys.json',             // path to keys.json. generates own keys if not specified.
-  genesisPath: './genesis.json',          // path to genesis.json. generates new one if not specified.
-  peers: [],            // array of '<host>:<p2pport>' of initial tendermint nodes to connect to. does automatic peer discovery if not specified.
-  logTendermint: false, // if true, shows all output from the underlying tendermint process
-  p2pPort: 46658,       // port to use for tendermint peer connections
-  tendermintPort: 46657 // port to use for tendermint rpc
+  initialState: {},            // initial blockchain state
+  keyPath: 'keys.json',        // path to keys.json. generates own keys if not specified.
+  genesisPath: 'genesis.json', // path to genesis.json. generates new one if not specified.
+  peers: [],                   // array of '<host>:<p2pport>' of initial tendermint nodes to connect to. does automatic peer discovery if not specified.
+  logTendermint: false,        // if true, shows all output from the underlying tendermint process
+  p2pPort: 46658,              // port to use for tendermint peer connections
+  rpcPort: 46657        // port to use for tendermint rpc
 }
 ```
 
@@ -174,10 +150,10 @@ Transaction handlers must be deterministic: for a given set of `state`/`tx`/`cha
 
 ```js
 {
-  height: 42, // number of blocks committed so far. usually 1 new block per second.
+  time: 1541415248, // timestamp of the latest block. (unix seconds)
   validators: {
-    '<some base64-encoded pubkey>' : 20, // voting power distribution for validators. requires understanding tendermint.
-    '<other pubkey in base64>': 147 // it's ok if you're not sure what this means, this is usually hidden from you.
+    '<base64-encoded pubkey>' : 20, // voting power distribution for validators. requires understanding tendermint.
+    '<other pubkey>': 147 // it's ok if you're not sure what this means, this is usually hidden from you.
   }
 }
 ```

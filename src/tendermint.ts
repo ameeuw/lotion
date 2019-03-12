@@ -139,7 +139,7 @@ export default async function createTendermintProcess({
   }
 
   tendermintProcess.then(() => {
-    console.log('tm exited')
+    throw new Error('Tendermint exited unexpectedly')
   })
   await tendermintProcess.synced()
   return {}

@@ -1,11 +1,11 @@
 {
   "name": "lotion",
-  "version": "0.2.3",
+  "version": "0.4.10",
   "description": "smooth, easy blockchain apps. powered by tendermint consensus.",
   "main": "dist/index.js",
   "scripts": {
-    "test": "ava",
-    "install": "tsc"
+    "publish": "tsc",
+    "test": "tsc && depcheck --ignores=@types/node && nyc -r html -r text ava"
   },
   "keywords": [],
   "author": "Judd Keppel <kepzorz@gmail.com>",
@@ -20,12 +20,30 @@
     "express-http-proxy": "^1.4.0",
     "fs-extra": "^7.0.0",
     "get-port": "^4.0.0",
-    "jsondiffpatch": "^0.3.11",
-    "lotion-connect": "git+https://github.com/ameeuw/lotion-connect.git",
-    "level": "^4.0.0",
-    "toml": "^2.3.3",
-    "toml-js": "0.0.8",
-    "tendermint-node": "^3.4.0",
-    "lotion-state-machine": "0.0.5"
-  }
+    "jpfs": "0.0.4",
+    "lotion-connect": "^0.1.9",
+    "lotion-state-machine": "^0.2.0",
+    "peer-channel": "^0.1.2",
+    "tendermint": "^3.4.0",
+    "tendermint-node": "^3.5.0",
+    "varstruct": "^6.1.2"
+  },
+  "devDependencies": {
+    "ava": "^0.25.0",
+    "depcheck": "^0.7.1",
+    "nyc": "^13.1.0",
+    "typescript": "^3.3.1"
+  },
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nomic-io/lotion.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nomic-io/lotion/issues"
+  },
+  "homepage": "https://github.com/nomic-io/lotion#readme"
 }
