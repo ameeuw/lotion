@@ -1,46 +1,52 @@
 {
   "name": "lotion",
-  "version": "0.1.19",
+  "version": "0.4.10",
   "description": "smooth, easy blockchain apps. powered by tendermint consensus.",
-  "main": "index.js",
-  "directories": {
-    "example": "example"
-  },
+  "main": "dist/index.js",
   "scripts": {
-    "test": "nyc tape test/counter.js",
-    "report-coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
-    "contributors:add": "all-contributors add",
-    "contributors:generate": "all-contributors generate"
+    "publish": "tsc",
+    "test": "tsc && depcheck --ignores=@types/node && nyc -r html -r text ava"
   },
   "keywords": [],
   "author": "Judd Keppel <kepzorz@gmail.com>",
   "license": "ISC",
   "dependencies": {
-    "abci": "^2.1.0",
+    "@types/node": "^10.11.3",
+    "abci": "^4.0.2",
     "await-to-js": "^2.0.1",
-    "axios": "^0.16.2",
-    "body-parser": "^1.17.2",
+    "axios": "^0.18.0",
     "cors": "^2.8.4",
-    "deterministic-json": "^1.0.4",
-    "express": "^4.15.4",
-    "express-http-proxy": "^1.0.7",
-    "fs-extra": "^5.0.0",
-    "get-port": "^3.1.0",
-    "is-electron": "^2.1.0",
-    "jsondiffpatch": "^0.2.5",
-    "level": "^4.0.0",
-    "lodash.get": "^4.4.2",
-    "merk": "^1.3.1",
-    "tendermint-node": "^2.0.5",
-    "toml": "^2.3.3",
+    "deterministic-json": "^1.0.5",
+    "express": "^4.16.3",
+    "express-http-proxy": "^1.4.0",
+    "fs-extra": "^7.0.0",
+    "get-port": "^4.0.0",
+    "jpfs": "0.0.4",
+    "lotion-connect": "^0.1.9",
+    "lotion-state-machine": "^0.2.0",
+    "peer-channel": "^0.1.2",
+    "tendermint": "^3.4.0",
+    "tendermint-node": "^3.5.0",
+    "toml": "^3.0.0",
     "toml-js": "0.0.8",
-    "varstruct": "^6.1.1"
+    "varstruct": "^6.1.2"
   },
   "devDependencies": {
-    "all-contributors-cli": "^4.9.1",
-    "nyc": "^11.3.0",
-    "rimraf": "^2.6.2",
-    "tape": "^4.8.0",
-    "tape-promise": "^2.0.1"
-  }
+    "ava": "^0.25.0",
+    "depcheck": "^0.7.1",
+    "nyc": "^13.1.0",
+    "typescript": "^3.3.1"
+  },
+  "directories": {
+    "example": "example",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nomic-io/lotion.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nomic-io/lotion/issues"
+  },
+  "homepage": "https://github.com/nomic-io/lotion#readme"
 }
