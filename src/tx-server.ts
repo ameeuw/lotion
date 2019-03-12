@@ -3,6 +3,7 @@ let { json } = require('body-parser')
 let axios = require('axios')
 let proxy = require('express-http-proxy')
 let cors = require('cors')
+let { to } = require('await-to-js')
 
 let vstruct = require('varstruct')
 let { stringify, parse } = require('deterministic-json')
@@ -52,8 +53,42 @@ export = function({
   })
   app.use('/tendermint', proxy(`http://localhost:${rpcPort}`))
 
-  app.get('/state', (req, res) => {
-    res.json(stateMachine.query())
+  app.get('/state', async (req, res) => {
+    let state = {}
+    let path = ''
+    if (req.query.path) {
+      path = `?path=${req.query.path}`
+    }
+
+    var [error, result] = await to(axios.get(`http://localhost:${rpcPort}/abci_query${path}`))
+    if (!error && !result.data.error) {
+      console.log("Serving local state..")
+      state = JSON.parse(Buffer.from(result.data.result.response.value, 'base64').toString())
+    }
+    res.send(state)
+  })
+
+  app.get('/diff', async (req, res) => {
+    let state = {}
+    console.log(req.query)
+    let path = ''
+    if (req.query.path) {
+      path = `path=${req.query.path}`
+    }
+    let height = ''
+    if (req.query.height) {
+      height = `height=${req.query.height}`
+    }
+
+    let requestString = `http://localhost:${rpcPort}/abci_query${req.query}`
+    console.log(requestString)
+
+    // var [error, result] = await to(axios.get(`http://localhost:${rpcPort}/abci_query${path}`))
+    // if (!error && !result.data.error) {
+    //   console.log("Serving local state..")
+    //   state = JSON.parse(Buffer.from(result.data.result.response.value, 'base64').toString())
+    // }
+    res.send(state)
   })
 
   return app

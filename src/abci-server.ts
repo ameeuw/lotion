@@ -4,6 +4,8 @@ import { createHash } from 'crypto'
 
 let to = require('await-to-js').to
 import jsondiffpatch = require('jsondiffpatch')
+let fs = require('fs-extra')
+let { join } = require('path')
 
 let createServer = require('abci')
 
@@ -11,79 +13,33 @@ export interface ABCIServer {
   listen(port)
 }
 
-export default function createABCIServer(stateMachine, initialState, storeDb, diffDb): any {
+export default function createABCIServer(
+  stateMachine,
+  initialState,
+  lotionAppHome,
+  diffDb
+): any {
+  let stateFilePath = join(lotionAppHome, 'prev-state.json')
   let height = 0
 
   let abciServer = createServer({
     async info(request) {
-      // console.log(JSON.stringify(request, null, 2))
-      let appState = initialState
-      let lastBlockHeight
-      let lastState
-      let rootHash
+      let stateFileExists = await fs.pathExists(stateFilePath)
+      if (stateFileExists) {
+        let stateFile = djson.parse(await fs.readFile(stateFilePath, 'utf8'))
+        let rootHash = createHash('sha256')
+          .update(djson.stringify(stateFile.state))
+          .digest()
 
-      try {
-        lastBlockHeight = await storeDb.get('lastBlockHeight')
-        lastBlockHeight = parseInt(lastBlockHeight)
-      } catch(err) {
-        lastBlockHeight = 0
-      }
-
-      try {
-        lastState = JSON.parse(await storeDb.get(lastBlockHeight))
-        console.log(`State found at ${lastBlockHeight}`)
-      } catch(err) {
-        console.log(`No state found at ${lastBlockHeight}`)
-        lastBlockHeight = 0
-        lastState = { appState }
-        lastState.appHash = createHash('sha256')
-          .update(djson.stringify(lastState.appState))
-          .digest('hex')
-      }
-
-      // let rootHash = await getRoot(lastState.appState)
-      rootHash = createHash('sha256')
-        .update(djson.stringify(lastState.appState))
-        .digest('hex')
-      console.log(rootHash.toString())
-      console.log(lastState.appHash)
-
-      // Yes, this is really hacky - but for now its working :D
-      if ( lastState.appHash == rootHash.toString() ) {
-        console.log("ALL GOOD")
-        // lastState = JSON.parse(await storeDb.get(lastBlockHeight+1))
-      } else {
-        console.log("NOT GOOD")
-        try {
-          lastBlockHeight = lastBlockHeight - 1
-          lastState = JSON.parse(await storeDb.get(lastBlockHeight))
-          console.log(`State found at ${lastBlockHeight}`)
-        } catch(err) {
-          console.log(`No state found at ${lastBlockHeight}`)
-          lastBlockHeight = 0
-          lastState = { appState }
+        stateMachine.initialize(stateFile.state, stateFile.context, true)
+        height = stateFile.height
+        return {
+          lastBlockAppHash: rootHash,
+          lastBlockHeight: stateFile.height
         }
-        rootHash = createHash('sha256')
-          .update(djson.stringify(lastState.appState))
-          .digest('hex')
-        console.log(rootHash.toString())
-        console.log(lastState.appHash)
-      }
-
-      if (lastBlockHeight == 0) {
-        rootHash = Buffer.from('', 'hex')
       } else {
-        stateMachine.initialize(lastState.appState, lastState.chainInfo)
+        return {}
       }
-
-      // lastBlockHeight = lastBlockHeight+1
-      height = lastBlockHeight
-
-      console.log(`Continuing blockchain from:`)
-      console.log(`lastBlockHeight: ${lastBlockHeight}`)
-      console.log(`lastBlockAppHash: ${rootHash.toString()}`)
-
-      return { lastBlockAppHash: Buffer.from(rootHash, 'hex'), lastBlockHeight: lastBlockHeight }
     },
 
     deliverTx(request) {
@@ -99,6 +55,7 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
         return { code: 1, log: 'Invalid transaction encoding' }
       }
     },
+
     checkTx(request) {
       try {
         let tx = decodeTx(request.tx)
@@ -112,6 +69,7 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
         return { code: 1, log: 'Invalid transaction encoding' }
       }
     },
+
     beginBlock(request) {
       let block = request.header
       let time = request.header.time.seconds.toNumber()
@@ -119,7 +77,8 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
       stateMachine.transition({ type: 'begin-block', data: { time, block, height } })
       return {}
     },
-    async endBlock() {
+
+    endBlock() {
       stateMachine.transition({ type: 'block', data: {} })
       let { validators } = stateMachine.context()
       let validatorUpdates = []
@@ -137,61 +96,39 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
     },
 
     async commit() {
-      let appHash = stateMachine.commit()
-      let appState = stateMachine.query()
-      let chainInfo = stateMachine.context()
+      let data = stateMachine.commit()
+      let state = stateMachine.query()
 
-      let lastBlockHeight
-      try {
-        lastBlockHeight = await storeDb.get('lastBlockHeight')
-      } catch(err) {
-        lastBlockHeight = 0
-      }
-      let lastState
-      try {
-        lastState = djson.parse(await storeDb.get(lastBlockHeight))
-      } catch(err) {
-        lastState = { appState }
+      let newStateFilePath = join(lotionAppHome, `state.json`)
+      if (await fs.pathExists(newStateFilePath)) {
+        await fs.move(newStateFilePath, stateFilePath, { overwrite: true })
       }
 
-      let diff = jsondiffpatch.diff(lastState.appState, appState)
-      if (diff) {
-        // console.log(`\nLASTSTATE ${lastBlockHeight}\n`)
-        // console.log(JSON.stringify(lastState.appState, null, 2))
-        // console.log(`\nSTATE ${height}\n`)
-        // console.log(JSON.stringify(appState, null, 2))
-        // console.log(`\nDIFF ${lastBlockHeight} --> ${height}\n`)
-        // console.log(JSON.stringify(diff, null, 2))
-        let [err, response] = await to(diffDb.put((height+1), djson.stringify(diff)))
-        if (err) console.log("Error saving diff.")
-      }
+      let context = Object.assign({}, stateMachine.context())
+      delete context.rootState
+      await fs.writeFile(
+        newStateFilePath,
+        djson.stringify({
+          context,
+          state,
+          height
+        })
+      )
 
-      // Store storeObject in storeDB
-      let storeObject = JSON.stringify({
-        appHash: appHash.toString('hex'),
-        appState,
-        chainInfo
-      })
 
-      let [err, response] = await to(storeDb.put(height, storeObject))
-      if (err) {
-        // console.log("Error storing storeObject")
-      } else {
-        let [err, reponse] = await to(storeDb.put('lastBlockHeight', height))
-        if (err) {
-          // console.log("Error storing lastBlockHeight")
-        } else {
-          // console.log("Success storing storeObject and lastBlockHeight")
-          if (chainInfo.height > 2) {
-            let [err, response] = await to(storeDb.del((height-2)))
-            if (err) {
-              // console.log("Error deleting storeObject from two heights ago...")
-            }
-          }
+      // Build diff from last state and update diffDB
+      let stateFileExists = await fs.pathExists(stateFilePath)
+      if (stateFileExists) {
+        let stateFile = djson.parse(await fs.readFile(stateFilePath, 'utf8'))
+        let diff = jsondiffpatch.diff(stateFile.state, state)
+        if (diff) {
+          let [err, response] = await to(diffDb.put(height, djson.stringify(diff)))
+          if (err) console.log("Error saving diff.")
         }
       }
 
-      return { data: Buffer.from(appHash, 'hex') }
+
+      return { data: Buffer.from(data, 'hex') }
     },
 
     initChain(request) {
@@ -203,19 +140,9 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
       stateMachine.initialize(initialState, initialInfo)
       return {}
     },
+
     async query(req) {
-      // console.log(JSON.stringify(req, null, 2))
-
-      let data = ''
-      if (req.data) {
-        try {
-          data = Buffer.from(req.data, 'base64').toString()
-        }
-        catch (error) {
-          console.log(error)
-        }
-      }
-
+      // Helper functions
       let pathInObject = function(obj, path='') {
         let args = path.split('.')
         for (var i = 0; i < args.length; i++) {
@@ -237,7 +164,18 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
         return current
       }
 
-      if (req.path=="diff" || data=="diff") {
+
+      let data = ''
+      if (req.data) {
+        try {
+          data = Buffer.from(req.data, 'base64').toString()
+        }
+        catch (error) {
+          console.log(error)
+        }
+      }
+
+      if (data=="diff") {
         req.height = (req.height!=0) ? req.height : (height - 1)
         let [err, response] = await to(diffDb.get(req.height))
         if (err) {
@@ -251,7 +189,7 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
           if (pathInObject(response, req.path)) {
             response = resolve(response, req.path)
           } else {
-            req.path = ''
+            req.path = '*'
           }
 
           return {
@@ -263,26 +201,21 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
         }
       } else {
         try {
-          let appState = stateMachine.query()
-          let state = { appState }
-          if (req.height != 0) {
-            state = JSON.parse(await storeDb.get(req.height))
-          } else {
-            req.height = height - 1
-          }
+          let state = stateMachine.query()
+          req.height = height - 1
+          let response = state
 
-          let response = state.appState
-          if (pathInObject(state.appState, req.path)) {
-            response = resolve(state.appState, req.path)
+          if (pathInObject(state, req.path)) {
+            response = resolve(state, req.path)
           } else {
-            req.path = ''
+            req.path = '*'
           }
 
           return {
             value: Buffer.from(djson.stringify(response)).toString('base64'),
             height: req.height,
             code: 0,
-            log: `path: 'state.${req.path||'*'}', block: ${req.height}`
+            log: `path: 'state.${req.path}', block: ${req.height}`
           }
         } catch (err) {
           if (err.notFound) {
@@ -292,15 +225,6 @@ export default function createABCIServer(stateMachine, initialState, storeDb, di
           }
         }
       }
-
-      // let path = req.path
-      // let queryResponse: object = stateMachine.query(path)
-      // let value = Buffer.from(djson.stringify(queryResponse)).toString('base64')
-      //
-      // return {
-      //   value,
-      //   height
-      // }
     }
   })
 

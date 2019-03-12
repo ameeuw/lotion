@@ -56,7 +56,6 @@ export class LotionApp implements Application {
   private emptyBlocksInterval: number
   private home: string
   private lotionHome: string = join(homedir(), '.lotion', 'networks')
-  private storeDb: object
   private diffDb: object
   private txServer: any
   private txHTTPServer: any
@@ -139,10 +138,9 @@ export class LotionApp implements Application {
     // start state machine
     this.stateMachine = this.application.compile()
 
-    this.storeDb = level(join(this.home, 'store'))
     this.diffDb = level(join(this.home, 'diff'))
 
-    this.abciServer = createABCIServer(this.stateMachine, this.initialState, this.storeDb, this.diffDb)
+    this.abciServer = createABCIServer(this.stateMachine, this.initialState, this.home, this.diffDb)
     this.abciServer.listen(this.ports.abci)
 
     // start tendermint process
