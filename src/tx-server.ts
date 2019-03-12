@@ -70,24 +70,17 @@ export = function({
 
   app.get('/diff', async (req, res) => {
     let state = {}
-    console.log(req.query)
-    let path = ''
-    if (req.query.path) {
-      path = `path=${req.query.path}`
-    }
-    let height = ''
-    if (req.query.height) {
-      height = `height=${req.query.height}`
-    }
-
-    let requestString = `http://localhost:${rpcPort}/abci_query${req.query}`
+    req.query.data = '"diff"'
+    let params = Object.keys(req.query).map((key)=>{
+      return `${key}=${req.query[key]}`
+    })
+    let requestString = `http://localhost:${rpcPort}/abci_query${params?'?'+params.join('&'):''}`
     console.log(requestString)
-
-    // var [error, result] = await to(axios.get(`http://localhost:${rpcPort}/abci_query${path}`))
-    // if (!error && !result.data.error) {
-    //   console.log("Serving local state..")
-    //   state = JSON.parse(Buffer.from(result.data.result.response.value, 'base64').toString())
-    // }
+    var [error, result] = await to(axios.get(requestString))
+    if (!error && !result.data.error) {
+      console.log("Serving local state..")
+      state = JSON.parse(Buffer.from(result.data.result.response.value, 'base64').toString())
+    }
     res.send(state)
   })
 
