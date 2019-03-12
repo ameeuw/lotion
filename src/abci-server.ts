@@ -180,9 +180,9 @@ export default function createABCIServer(
         let [err, response] = await to(diffDb.get(req.height))
         if (err) {
           if (err.notFound) {
-            return { code: 3, log: 'diff not found' }
+            return { code: "3", log: 'diff not found' }
           } else {
-            return { code: 2, log: 'invalid query: ' + err.message }
+            return { code: "2", log: 'invalid query: '+err.message }
           }
         } else {
           response = djson.parse(response)
@@ -194,9 +194,9 @@ export default function createABCIServer(
 
           return {
             value: Buffer.from(djson.stringify(response)).toString('base64'),
-            height: req.height,
-            code: 0,
-            log: `path: '${req.path||'*'}', block: ${req.height}, data:${data}`
+            height: `${req.height}`,
+            code: "0",
+            log: `path: '${req.path}', block: ${req.height}, data:${data}`
           }
         }
       } else {
@@ -213,15 +213,15 @@ export default function createABCIServer(
 
           return {
             value: Buffer.from(djson.stringify(response)).toString('base64'),
-            height: req.height,
-            code: 0,
-            log: `path: 'state.${req.path}', block: ${req.height}`
+            height: `${req.height}`,
+            code: "0",
+            log: `path: '${req.path}', block: ${req.height}`
           }
         } catch (err) {
           if (err.notFound) {
-            return { code: 3, log: 'state not found' }
+            return { code: "3", log: 'state not found' }
           } else {
-            return { code: 2, log: 'invalid query: ' + err.message }
+            return { code: "2", log: 'invalid query: '+err.message }
           }
         }
       }
