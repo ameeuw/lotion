@@ -1,11 +1,7 @@
 import djson = require('deterministic-json')
 import vstruct = require('varstruct')
-import { createHash } from 'crypto'
 
 let to = require('await-to-js').to
-import jsondiffpatch = require('jsondiffpatch')
-let fs = require('fs-extra')
-let { join } = require('path')
 
 let createServer = require('abci')
 let { createHash } = require('crypto')
@@ -75,8 +71,6 @@ export default function createABCIServer(
     beginBlock(request) {
       let block = request.header
       let time = request.header.time.seconds.toNumber()
-      stateMachine.transition({ type: 'begin-block', data: { time } })
-
       stateMachine.transition({ type: 'begin-block', data: { time, block, height } })
       return {}
     },
@@ -97,8 +91,9 @@ export default function createABCIServer(
       }
     },
     async commit() {
-      let data = stateMachine.commit()
-      let state = stateMachine.query()
+      let data = stateMachine.commit(height)
+      height++
+      let state = await stateMachine.query()
 
       let newStateFilePath = join(lotionAppHome, `state.json`)
       if (await fs.pathExists(newStateFilePath)) {
@@ -116,19 +111,6 @@ export default function createABCIServer(
         })
       )
 
-
-      // Build diff from last state and update diffDB
-      let stateFileExists = await fs.pathExists(stateFilePath)
-      if (stateFileExists) {
-        let stateFile = djson.parse(await fs.readFile(stateFilePath, 'utf8'))
-        let diff = jsondiffpatch.diff(stateFile.state, state)
-        if (diff) {
-          let [err, response] = await to(diffDb.put(height, djson.stringify(diff)))
-          if (err) console.log("Error saving diff.")
-        }
-      }
-
-
       return { data: Buffer.from(data, 'hex') }
     },
 
@@ -142,89 +124,15 @@ export default function createABCIServer(
       return {}
     },
 
-    async query(req) {
-      // Helper functions
-      let pathInObject = function(obj, path='') {
-        let args = path.split('.')
-        for (var i = 0; i < args.length; i++) {
-          if (!obj.hasOwnProperty(args[i])) {
-            return false
-          }
-          obj = obj[args[i]]
-        }
-        return true
-      }
+    async query(request) {
+      let queryResponse = await stateMachine.query(request)
+      let value = Buffer.from(djson.stringify(queryResponse.value)).toString('base64')
 
-      let resolve = function(obj, path='') {
-        let args = path.split('.')
-        var current = obj
-        while(args.length) {
-          if(typeof current !== 'object') return undefined
-          current = current[args.shift()]
-        }
-        return current
-      }
-
-
-      let data = ''
-      if (req.data) {
-        try {
-          data = Buffer.from(req.data, 'base64').toString()
-        }
-        catch (error) {
-          console.log(error)
-        }
-      }
-
-      if (data=="diff") {
-        req.height = (req.height!=0) ? req.height : (height - 1)
-        let [err, response] = await to(diffDb.get(req.height))
-        if (err) {
-          if (err.notFound) {
-            return { code: "3", log: 'diff not found' }
-          } else {
-            return { code: "2", log: 'invalid query: '+err.message }
-          }
-        } else {
-          response = djson.parse(response)
-          if (pathInObject(response, req.path)) {
-            response = resolve(response, req.path)
-          } else {
-            req.path = '*'
-          }
-
-          return {
-            value: Buffer.from(djson.stringify(response)).toString('base64'),
-            height: `${req.height}`,
-            code: "0",
-            log: `path: '${req.path}', block: ${req.height}, data:${data}`
-          }
-        }
-      } else {
-        try {
-          let state = stateMachine.query()
-          req.height = height - 1
-          let response = state
-
-          if (pathInObject(state, req.path)) {
-            response = resolve(state, req.path)
-          } else {
-            req.path = '*'
-          }
-
-          return {
-            value: Buffer.from(djson.stringify(response)).toString('base64'),
-            height: `${req.height}`,
-            code: "0",
-            log: `path: '${req.path}', block: ${req.height}`
-          }
-        } catch (err) {
-          if (err.notFound) {
-            return { code: "3", log: 'state not found' }
-          } else {
-            return { code: "2", log: 'invalid query: '+err.message }
-          }
-        }
+      return {
+        log: `${queryResponse.log ? queryResponse.log : 'Error in response from queryHandler.'}`,
+        code: `${queryResponse.code ? queryResponse.code : '-1'}`,
+        value,
+        height: queryResponse.height ? queryResponse.height : height
       }
     }
   })

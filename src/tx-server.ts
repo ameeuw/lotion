@@ -53,19 +53,19 @@ export = function({
   })
   app.use('/tendermint', proxy(`http://localhost:${rpcPort}`))
 
-  app.get('/state', async (req, res) => {
+  app.get('/query', async (req, res) => {
     let state = {}
-    let path = ''
-    if (req.query.path) {
-      path = `?path=${req.query.path}`
-    }
+    let params = Object.keys(req.query).map((key)=>{
+      return `${key}=${req.query[key]}`
+    })
 
-    var [error, result] = await to(axios.get(`http://localhost:${rpcPort}/abci_query${path}`))
+    let requestString = `http://localhost:${rpcPort}/abci_query${params?'?'+params.join('&'):''}`
+    console.log(requestString)
+    var [error, result] = await to(axios.get(requestString))
     if (!error && !result.data.error) {
-      console.log("Serving local state..")
-      state = JSON.parse(Buffer.from(result.data.result.response.value, 'base64').toString())
+      result.data.result.response.value = JSON.parse(Buffer.from(result.data.result.response.value, 'base64').toString())
     }
-    res.send(state)
+    res.send(result.data.result.response)
   })
 
   app.get('/diff', async (req, res) => {

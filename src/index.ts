@@ -8,10 +8,10 @@ import { join } from 'path'
 import { homedir } from 'os'
 import createABCIServer, { ABCIServer } from './abci-server'
 import createTendermintProcess from './tendermint'
+import createDiscoveryServer, { DiscoveryServer } from './discovery'
 import { randomBytes, createHash } from 'crypto'
 import fs = require('fs-extra')
 import getPort = require('get-port')
-import level = require('level')
 
 import TxServer = require('./tx-server')
 
@@ -46,6 +46,7 @@ export class LotionApp implements Application {
   private stateMachine: StateMachine
   private application: Application
   private abciServer: ABCIServer
+  private discoveryServer: DiscoveryServer
   private tendermintProcess
   private ports: PortMap
   private genesis: string
@@ -58,13 +59,13 @@ export class LotionApp implements Application {
   private discovery: boolean = true
   private home: string
   private lotionHome: string = join(homedir(), '.lotion', 'networks')
-  private diffDb: object
   private txServer: any
   private txHTTPServer: any
 
   public use
   public useTx
   public useBlock
+  public useQuery
   public useInitializer
   public GCI
 
@@ -121,10 +122,10 @@ export class LotionApp implements Application {
      */
     let homePath = createHash('sha256')
     if (this.config.genesisPath) {
-      homePath.update(resolve(this.config.genesisPath))
+      homePath.update(fs.readFileSync(this.config.genesisPath))
     }
     if (this.config.keyPath) {
-      homePath.update(resolve(this.config.keyPath))
+      homePath.update(fs.readFileSync(this.config.keyPath))
     }
 
     if (!this.config.genesisPath && !this.config.keyPath) {
