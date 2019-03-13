@@ -7,8 +7,6 @@ coverage
 *.lcov
 test/
 docs/
-src/
 .travis.yml
 example
-tsconfig.json
 .all-contributorsrc
