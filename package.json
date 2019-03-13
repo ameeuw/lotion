@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "publish": "tsc",
+    "install": "tsc",
     "test": "tsc && depcheck --ignores=@types/node && nyc -r html -r text ava"
   },
   "keywords": [],
