@@ -23,7 +23,7 @@
     "get-port": "^3.2.0",
     "jpfs": "0.0.4",
     "lotion-connect": "^0.1.9",
-    "lotion-state-machine": "^0.2.0",
+    "lotion-state-machine": "git+https://github.com/ameeuw/lotion-state-machine",
     "peer-channel": "^0.1.2",
     "tendermint": "^3.4.0",
     "tendermint-node": "^3.5.0",
