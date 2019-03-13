@@ -22,7 +22,7 @@ interface ApplicationConfig extends BaseApplicationConfig {
   abciPort?: number
   lotionPort?: number
   logTendermint?: boolean
-  emptyBlocksInterval?: number
+  tmConfig?: any
   keyPath?: string
   genesisPath?: string
   peers?: Array<string>
@@ -55,7 +55,7 @@ export class LotionApp implements Application {
   private keyPath: string
   private initialState: object
   private logTendermint: boolean
-  private emptyBlocksInterval: number
+  private tmConfig: any
   private discovery: boolean = true
   private home: string
   private lotionHome: string = join(homedir(), '.lotion', 'networks')
@@ -72,7 +72,7 @@ export class LotionApp implements Application {
   constructor(private config: ApplicationConfig) {
     this.application = buildApplication(config)
     this.logTendermint = config.logTendermint
-    this.emptyBlocksInterval = config.emptyBlocksInterval
+    this.tmConfig = config.tmConfig
     this.initialState = config.initialState
     this.keyPath = config.keyPath
     this.genesisPath = config.genesisPath
@@ -87,8 +87,8 @@ export class LotionApp implements Application {
     this.ports = {
       abci: this.config.abciPort || (await getPort()),
       p2p: this.config.p2pPort || (await getPort()),
-      rpc: this.config.rpcPort || 46657,
-      lotion: this.config.lotionPort || 3000
+      rpc: this.config.rpcPort || (await getPort()),
+      lotion: this.config.lotionPort || (await getPort())
     }
   }
 
@@ -154,7 +154,7 @@ export class LotionApp implements Application {
       ports: this.ports,
       home: this.home,
       logTendermint: this.logTendermint,
-      emptyBlocksInterval: this.emptyBlocksInterval,
+      tmConfig: this.tmConfig,
       keyPath: this.keyPath,
       genesisPath: this.genesisPath,
       peers: this.peers

@@ -1,8 +1,6 @@
 import djson = require('deterministic-json')
 import vstruct = require('varstruct')
 
-let to = require('await-to-js').to
-
 let createServer = require('abci')
 let { createHash } = require('crypto')
 let fs = require('fs-extra')

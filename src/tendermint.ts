@@ -16,7 +16,7 @@ interface TendermintConfig {
   logTendermint?: boolean
   genesisPath?: string
   keyPath?: string
-  emptyBlocksInterval?: number
+  tmConfig?: any
   peers?: Array<string>
 }
 
@@ -30,7 +30,7 @@ export default async function createTendermintProcess({
   logTendermint,
   genesisPath,
   keyPath,
-  emptyBlocksInterval,
+  tmConfig,
   peers
 }: TendermintConfig): Promise<any> {
   /**
@@ -100,14 +100,19 @@ export default async function createTendermintProcess({
 
    let content = fs.readFileSync(join(home, 'config', 'config.toml'))
    let tmToml = toml.parse(content)
-   if (emptyBlocksInterval>0) {
+
+   if (tmConfig.emptyBlocksInterval>0) {
      // tmToml.consensus.create_empty_blocks_interval = emptyBlocksInterval
      tmToml.consensus.create_empty_blocks_interval = 0
-     tmToml.consensus.timeout_commit = emptyBlocksInterval*1000
+     tmToml.consensus.timeout_commit = tmConfig.emptyBlocksInterval*1000
+   }
+
+   for (let element in tmConfig) {
+     console.log({element})
+     console.log(tmConfig[element])
    }
 
    tmToml.rpc.laddr = `tcp://0.0.0.0:${ports.rpc}`
-
    tmToml.p2p.addr_book_strict = false
    tmToml.p2p.persistent_peers = peers.join(',')
    tmToml.p2p.seeds = peers.join(',')
