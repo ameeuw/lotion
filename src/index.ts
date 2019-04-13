@@ -13,7 +13,7 @@ import { randomBytes, createHash } from 'crypto'
 import fs = require('fs-extra')
 import getPort = require('get-port')
 
-import TxServer = require('./tx-server')
+import { TxServer } from './tx-server'
 
 
 interface ApplicationConfig extends BaseApplicationConfig {
@@ -171,11 +171,10 @@ export class LotionApp implements Application {
         rpcPort: this.ports.rpc
       })
     }
-    this.txServer = TxServer({
-      port: this.ports.lotion,
-      rpcPort: this.ports.rpc,
-      stateMachine: this.stateMachine
-    })
+    this.txServer = TxServer(
+      this.ports.rpc,
+      this.stateMachine
+    )
     this.txHTTPServer = this.txServer.listen(this.ports.lotion, 'localhost', function() {
       console.log("listening...")
     })

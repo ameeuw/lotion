@@ -1,10 +1,10 @@
-let express = require('express')
-let { json } = require('body-parser')
-let axios = require('axios')
-let proxy = require('express-http-proxy')
-let cors = require('cors')
-let { to } = require('await-to-js')
-
+import express = require('express');
+import { json } from 'body-parser';
+import proxy = require('express-http-proxy');
+import cors = require('cors');
+import { to } from 'await-to-js';
+import axios from 'axios'
+import { StateMachine } from 'lotion-state-machine';
 let vstruct = require('varstruct')
 let { stringify, parse } = require('deterministic-json')
 
@@ -25,12 +25,11 @@ function encode(txData, nonce) {
   return bytes
 }
 
-export = function({
-  port,
-  rpcPort,
-  stateMachine
-}) {
-  let app = express()
+export function TxServer(
+  rpcPort: number,
+  stateMachine: StateMachine
+) {
+  let app: express.Application = express()
   app.use(cors())
   app.use(json({ type: '*/*' }))
   app.post('/txs', async (req, res) => {
@@ -48,9 +47,10 @@ export = function({
     res.json(response)
   })
 
-  app.get('/info', (req, res) => {
-    res.json(stateMachine.info())
+  app.get('/context', (req, res) => {
+    res.json(stateMachine.context())
   })
+
   app.use('/tendermint', proxy(`http://localhost:${rpcPort}`))
 
   app.get('/query', async (req, res) => {
@@ -59,6 +59,40 @@ export = function({
       return `${key}=${req.query[key]}`
     })
 
+    // let request = {
+    //   data: undefined,
+    //   height: undefined,
+    //   path: undefined
+    // }
+    //
+    // if (req.query.data) {
+    //   request.data = Buffer.from(req.query.data.replace(/['"]+/g, ''))
+    // }
+    //
+    // if (req.query.height) {
+    //   request.height = parseInt(req.query.height)
+    // }
+    //
+    // if (req.query.path) {
+    //   request.path = req.query.path.replace(/['"]+/g, '')
+    // }
+    //
+    // console.log("BUILD REQUEST")
+    // console.log(request)
+    //
+    // let queryResponse  = await stateMachine.query(request)
+    // console.log(queryResponse)
+    //
+    // res.send({
+    //   log: `${queryResponse.log ? queryResponse.log : 'Error in response from queryHandler.'}`,
+    //   code: `${queryResponse.code ? queryResponse.code : '-1'}`,
+    //   value: queryResponse.value,
+    //   height: queryResponse.height ? queryResponse.height : -1
+    // })
+    //
+    // console.log(req.query)
+    //
+    //
     let requestString = `http://localhost:${rpcPort}/abci_query${params?'?'+params.join('&'):''}`
     // console.log(requestString)
     var [error, result] = await to(axios.get(requestString))
