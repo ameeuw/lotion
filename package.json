@@ -12,6 +12,11 @@
   "author": "Judd Keppel <kepzorz@gmail.com>",
   "license": "ISC",
   "dependencies": {
+    "@iarna/toml": "^2.2.3",
+    "@types/cors": "^2.8.4",
+    "@types/express": "^4.16.1",
+    "@types/express-http-proxy": "^1.5.2",
+    "@types/iarna__toml": "^2.0.0",
     "@types/node": "^10.5.2",
     "abci": "^4.0.2",
     "await-to-js": "^2.1.1",
@@ -27,8 +32,6 @@
     "peer-channel": "^0.1.2",
     "tendermint": "^3.4.0",
     "tendermint-node": "^3.5.0",
-    "toml": "^3.0.0",
-    "toml-js": "0.0.8",
     "varstruct": "^6.1.2"
   },
   "devDependencies": {
